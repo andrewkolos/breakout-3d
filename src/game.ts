@@ -50,7 +50,6 @@ export class BreakoutGame {
         this.scene.add(new THREE.AmbientLight('white', 1));
     }
 
-
     update = () => {
         let handleCollisions = () => {
             this.level.ballObjects.forEach(bo => {
@@ -273,12 +272,34 @@ class BallObject extends THREE.Mesh {
 
     velocity: THREE.Vector3;
     colliding: boolean;
+    private collided: boolean = false;
 
     constructor(geometry: THREE.SphereGeometry, material: THREE.Material, public dx?: number, public dy?: number) {
         super(geometry, material);
 
         this.velocity = new THREE.Vector3(dx, dy);
         this.colliding = false;
+    }
+
+    handleCollision(box: THREE.Box3, newVelocity?: THREE.Vector3) {
+        let position = this.position.clone();
+        this.position = this.position.add(this.velocity);
+
+        let ballBox = new THREE.Box3().setFromObject(this);
+        if (box.intersectsBox(ballBox)) {
+            if (!this.colliding) {
+                this.position.copy(position);
+                this.velocity.copy(newVelocity);
+                this.colliding = true;
+            }
+            this.collided = true;
+        }
+    }
+
+    tick() {
+        if (!this.collided) {
+            this.colliding = false;
+        }
     }
 
 }
