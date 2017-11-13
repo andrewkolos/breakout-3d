@@ -6,11 +6,11 @@ import {OrbitControls} from "three-orbitcontrols-ts";
 import {AxisHelper} from "three";
 import './physijs';
 
-const GAME_TICKS_PER_SECOND  = 240;
+const GAME_TICKS_PER_SECOND = 60;
 
 let renderer: THREE.WebGLRenderer;
 
-let game = new BreakoutGame(GAME_TICKS_PER_SECOND);
+let game = new BreakoutGame(GAME_TICKS_PER_SECOND, 1);
 
 document.body.onload = () => {
     Physijs.scripts.worker = './libs/physijs_worker.js';

@@ -20,13 +20,7 @@ export class BreakoutGame {
 
     private _speedModifier: number;
 
-    get gameSpeed() {
-        return this._speedModifier / this._updatesPerSecond;
-    }
-
-    set gameSpeed(value: number) {
-        this._speedModifier = value / this._updatesPerSecond;
-    }
+    private ballSpeed: number;
 
     private _running: boolean = false;
     private _updatesPerSecond: number;
@@ -52,7 +46,7 @@ export class BreakoutGame {
         this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
         this.camera.position.set(0, -20, 20);
         this._updatesPerSecond = updatesPerSecond;
-        this.gameSpeed = speedModifier;
+        this._speedModifier = speedModifier / updatesPerSecond;
         this.scene.add(new THREE.AmbientLight('white', 1));
     }
 
@@ -73,7 +67,6 @@ export class BreakoutGame {
                             bo.position.copy(prevPosition);
                             bo.position.add(bo.velocity);
 
-                            console.log('joj');
                             bo.colliding = true;
 
                         }
@@ -89,15 +82,55 @@ export class BreakoutGame {
                             bo.position.copy(prevPosition);
                             bo.position.add(bo.velocity);
 
-                            console.log('joj');
                             bo.colliding = true;
                         }
                         collided = true;
                     }
                 }
 
+                let paddleBox = new THREE.Box3().setFromObject(this.level.paddle);
+                if (paddleBox.intersectsBox(ballBox)) {
+                    if (!bo.colliding) {
+                        bo.velocity.y *= -1;
+                        bo.velocity.x = this.ballSpeed * Math.atan2(bo.position.y - this.level.paddle.position.y, bo.position.x - this.level.paddle.position.x);
+                        bo.position.copy(prevPosition);
+                        bo.position.add(bo.velocity);
+
+                        bo.colliding = true;
+                    }
+                    collided = true;
+                }
+
+                this.level.brickObjects.forEach(brick => {
+                    let brickBox = new THREE.Box3().setFromObject(brick);
+                   if (brickBox.intersectsBox(ballBox)) {
+                       if (!bo.colliding) {
+                           let xdisp = Math.abs(brick.position.x - bo.position.x);
+                           let ydisp = Math.abs(brick.position.y - bo.position.y);
+
+                           if (xdisp > ydisp) {
+                               bo.velocity.x *= -1;
+                               bo.position.copy(prevPosition);
+                               bo.position.add(bo.velocity);
+                           } else {
+                               bo.velocity.y *= -1;
+                               bo.position.copy(prevPosition);
+                               bo.position.add(bo.velocity);
+                           }
+
+                           brick.health --;
+                           if (brick.health < 0) {
+                               this.scene.remove(brick);
+                               this.level.brickObjects = this.level.brickObjects.filter(o => o!==brick);
+                           }
+
+                           bo.colliding = true;
+                       }
+                       collided = true;
+                   }
+                });
+
                 if (!collided) {
-                    console.log('hi');
                     bo.colliding = false;
                 }
 
@@ -117,12 +150,12 @@ export class BreakoutGame {
             });
         };
 
-        if (Keyboard.isDown(Keyboard.LEFTARROW)) {
-            movePaddle(-0.025);
+        if (Keyboard.isDown(Keyboard.LEFTARROW) || Keyboard.isDown(Keyboard.A)) {
+            movePaddle(-0.1);
         }
 
-        if (Keyboard.isDown(Keyboard.RIGHTARROW)) {
-            movePaddle(0.025);
+        if (Keyboard.isDown(Keyboard.RIGHTARROW) || Keyboard.isDown(Keyboard.D)) {
+            movePaddle(0.1);
         }
 
         if (manager.isGamepadConnected(0)) {
@@ -134,9 +167,10 @@ export class BreakoutGame {
 
     loadLevel = (blueprint: BreakoutLevelBlueprint) => {
         this.level = new BreakoutLevel(blueprint);
+        this.ballSpeed = this._speedModifier * this.level.baseBallSpeed;
         this.level.ballObjects.forEach(ballo => {
             this.scene.add(ballo);
-            ballo.velocity = new THREE.Vector3(this._speedModifier * 2, this._speedModifier * 2, 0);
+            ballo.velocity = new THREE.Vector3(this.ballSpeed* 0.5, this.ballSpeed * 0.5, 0);
         });
         this.level.brickObjects.forEach(bricko => this.scene.add(bricko));
         this.level.paddleBoundaries.forEach(pb => this.scene.add(pb));
@@ -171,6 +205,7 @@ class BreakoutLevel {
     paddleBoundaries = <PaddleBoundaryObject[]> [];
     topWalls = <WallObject[]> [];
     sideWalls = <WallObject[]> [];
+    baseBallSpeed: number;
 
     constructor(blueprint: BreakoutLevelBlueprint) {
 
@@ -185,13 +220,13 @@ class BreakoutLevel {
         let createBallObject = (position: Point) => {
             let geometry = new THREE.SphereGeometry(0.4, 32, 32);
             let material = new THREE.MeshPhongMaterial({color: 'blue'});
-            let mesh = new BallObject(geometry, material, 0.0005, 0.0006);
+            let mesh = new BallObject(geometry, material, this.baseBallSpeed * 0.5, this.baseBallSpeed * 0.5);
             mesh.position.copy(convertScreenToCartesian(position.x, position.y, blueprint.width, blueprint.height));
             return mesh;
         };
 
         let createPaddle = (position: Point) => {
-            let geometry = new THREE.BoxGeometry(2, 0.135, 1);
+            let geometry = new THREE.BoxGeometry(5, 0.135, 1);
             let material = new THREE.MeshPhongMaterial({color: 'blue'});
             let mesh = new PaddleObject(geometry, material);
             mesh.position.copy(convertScreenToCartesian(position.x, position.y, blueprint.width, blueprint.height));
@@ -209,6 +244,7 @@ class BreakoutLevel {
         this.paddle = createPaddle(blueprint.paddlePosition);
         this.brickObjects = blueprint.bricks.map(brick => createBrickObject(brick));
         this.ballObjects = blueprint.ballPositions.map(position => createBallObject(position));
+        this.baseBallSpeed = blueprint.baseBallSpeed;
 
         for (let i = -1; i < blueprint.width + 1; i++) {
             let topWall = createWall(new Point(i, -1));

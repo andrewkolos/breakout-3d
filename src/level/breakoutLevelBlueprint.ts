@@ -7,6 +7,7 @@ export interface BreakoutLevelData {
     readonly blockGrid: string[]; /* Grid of characters where each index has an integer representing the blocks hp. 0 or lack of character means no block */
     readonly powerupGrid: string[];
     readonly playerGrid: string[];
+    readonly baseBallSpeed: number;
 }
 
 export class BreakoutLevelBlueprint {
@@ -16,7 +17,7 @@ export class BreakoutLevelBlueprint {
     readonly height: number;
     readonly ballPositions: Point[];
     readonly paddlePosition: Point;
-
+    readonly baseBallSpeed: number;
     readonly bricks: Brick[];
 
 
@@ -64,11 +65,11 @@ export class BreakoutLevelBlueprint {
             }
         }
 
-        return new BreakoutLevelBlueprint(blueprint.name, blueprint.width, blueprint.height, bricks, powerupMap, ballPositions, paddlePosition, paddleBoundaryPositions);
+        return new BreakoutLevelBlueprint(blueprint.name, blueprint.width, blueprint.height, bricks, powerupMap, ballPositions, paddlePosition, paddleBoundaryPositions, blueprint.baseBallSpeed);
     }
 
     private constructor(name: string, width: number, height: number, brickGrid: Brick[], powerupMap: Map<Brick, POWERUP>,
-                        ballPositions: Point[], paddlePosition: Point, paddleBoundaryPositions: Point[]) {
+                        ballPositions: Point[], paddlePosition: Point, paddleBoundaryPositions: Point[], baseBallSpeed: number) {
         this.name = name;
         this.width = width;
         this.height = height;
@@ -76,6 +77,7 @@ export class BreakoutLevelBlueprint {
         this.powerupMap = powerupMap;
         this.ballPositions = ballPositions;
         this.paddlePosition = paddlePosition;
+        this.baseBallSpeed = baseBallSpeed;
     }
 
     public getBricksPowerup(brick: Brick) {
