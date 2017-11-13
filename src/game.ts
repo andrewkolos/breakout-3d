@@ -100,18 +100,29 @@ export class BreakoutGame {
                     console.log('hi');
                     bo.colliding = false;
                 }
+
+
             });
         };
 
         handleCollisions();
 
-        if (Keyboard.isDown(Keyboard.LEFTARROW)) {
+        let movePaddle = (dx: number) => {
+            this.level.paddle.position.x += dx;
 
-            this.level.paddle.position.x -= 0.01;
+            let paddlebox = new THREE.Box3().setFromObject(this.level.paddle);
+            this.sideWallBoxes.forEach(swb => {
+                if (swb.intersectsBox(paddlebox))
+                    this.level.paddle.position.x -= dx;
+            });
+        };
+
+        if (Keyboard.isDown(Keyboard.LEFTARROW)) {
+            movePaddle(-0.025);
         }
 
         if (Keyboard.isDown(Keyboard.RIGHTARROW)) {
-            this.level.paddle.position.x += 0.01;
+            movePaddle(0.025);
         }
 
         if (manager.isGamepadConnected(0)) {

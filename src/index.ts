@@ -34,6 +34,7 @@ function setUpRenderer() {
     renderer.shadowMap.enabled = true;
 
     let controls = new OrbitControls(game.camera, renderer.domElement);
+    controls.enableKeys = false;
 
     window.addEventListener('resize', () => {
         game.camera.aspect = window.innerWidth / window.innerHeight;
