@@ -12,7 +12,19 @@ let renderer: THREE.WebGLRenderer;
 
 let game = new BreakoutGame(GAME_TICKS_PER_SECOND, 1);
 
+class Joj {
+    constructor(public numbers: number[]) {}
+}
+
 document.body.onload = () => {
+
+    let joj = new Joj([1, 2, 3]);
+    let asbeb = joj;
+
+    joj.numbers = [3, 4, 5];
+
+    console.log('joj', joj === asbeb);
+
     Physijs.scripts.worker = './libs/physijs_worker.js';
     Physijs.scripts.ammo = './ammo.js';
 

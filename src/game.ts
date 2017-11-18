@@ -15,7 +15,6 @@ export class BreakoutGame {
 
     private level: BreakoutLevel;
 
-    private topWallBoxes = <THREE.Box3[]> [];
     private sideWallBoxes = <THREE.Box3[]> [];
 
     private _speedModifier: number;
@@ -52,89 +51,52 @@ export class BreakoutGame {
 
     update = () => {
         let handleCollisions = () => {
+
+
+            // may need to velocity change from being undone
             this.level.ballObjects.forEach(bo => {
-                let collided = false;
-
-                let prevPosition = bo.position.clone();
-                bo.position.add(bo.velocity);
                 let ballBox = new THREE.Box3().setFromObject(bo);
-                for (let i = 0; i < this.topWallBoxes.length; i++) {
-                    let twb =  this.topWallBoxes[i];
-                    if (twb.intersectsBox(ballBox)) {
-                        if (!bo.colliding) {
-                            bo.velocity.y *= -1;
-                            bo.position.copy(prevPosition);
-                            bo.position.add(bo.velocity);
+                let map = new Map<THREE.Object3D, THREE.Vector3>();
 
-                            bo.colliding = true;
+                this.level.topWalls.forEach((twb) => {
+                    map.set(twb, new THREE.Vector3(1, -1, 1));
+                });
+                this.level.sideWalls.forEach((swb) => {
+                    map.set(swb, new THREE.Vector3(-1,1,1));
+                });
 
-                        }
-                        collided = true;
-                    }
-                }
-                for (let i = 0; i < this.sideWallBoxes.length; i++) {
-                    let swb =  this.sideWallBoxes[i];
-                    if (swb.intersectsBox(ballBox)) {
-
-                        if (!bo.colliding) {
-                            bo.velocity.x *= -1;
-                            bo.position.copy(prevPosition);
-                            bo.position.add(bo.velocity);
-
-                            bo.colliding = true;
-                        }
-                        collided = true;
-                    }
-                }
 
                 let paddleBox = new THREE.Box3().setFromObject(this.level.paddle);
                 if (paddleBox.intersectsBox(ballBox)) {
-                    if (!bo.colliding) {
-                        bo.velocity.y *= -1;
-                        bo.velocity.x = this.ballSpeed * Math.atan2(bo.position.y - this.level.paddle.position.y, bo.position.x - this.level.paddle.position.x);
-                        bo.position.copy(prevPosition);
-                        bo.position.add(bo.velocity);
-
-                        bo.colliding = true;
-                    }
-                    collided = true;
+                    bo.position.copy(bo.position);
+                    bo.position.y += 0.1;
+                    bo.velocity.y *= -1;
+                    bo.velocity.x = this.ballSpeed * Math.atan2(bo.position.y - this.level.paddle.position.y, bo.position.x - this.level.paddle.position.x);
                 }
 
                 this.level.brickObjects.forEach(brick => {
                     let brickBox = new THREE.Box3().setFromObject(brick);
-                   if (brickBox.intersectsBox(ballBox)) {
-                       if (!bo.colliding) {
-                           let xdisp = Math.abs(brick.position.x - bo.position.x);
-                           let ydisp = Math.abs(brick.position.y - bo.position.y);
+                    if (brickBox.intersectsBox(ballBox)) {
+                            let xdisp = Math.abs(brick.position.x - bo.position.x);
+                            let ydisp = Math.abs(brick.position.y - bo.position.y);
 
-                           if (xdisp > ydisp) {
-                               bo.velocity.x *= -1;
-                               bo.position.copy(prevPosition);
-                               bo.position.add(bo.velocity);
-                           } else {
-                               bo.velocity.y *= -1;
-                               bo.position.copy(prevPosition);
-                               bo.position.add(bo.velocity);
-                           }
+                            if (xdisp > ydisp) {
+                                map.set(brick, new THREE.Vector3(-1, 1, 1));
+                            } else {
+                                map.set(brick, new THREE.Vector3(1, -1, 1));
+                            }
 
-                           brick.health --;
-                           if (brick.health < 0) {
-                               this.scene.remove(brick);
-                               this.level.brickObjects = this.level.brickObjects.filter(o => o!==brick);
-                           }
-
-                           bo.colliding = true;
-                       }
-                       collided = true;
-                   }
+                            // may need to truly insure collision
+                            brick.health--;
+                            if (brick.health < 0) {
+                                this.scene.remove(brick);
+                                this.level.brickObjects = this.level.brickObjects.filter(o => o !== brick);
+                            }
+                        }
                 });
 
-                if (!collided) {
-                    bo.colliding = false;
-                }
-
-
-            });
+                bo.move(map);
+            }); // end ball, TODO make block shorter
         };
 
         handleCollisions();
@@ -169,14 +131,11 @@ export class BreakoutGame {
         this.ballSpeed = this._speedModifier * this.level.baseBallSpeed;
         this.level.ballObjects.forEach(ballo => {
             this.scene.add(ballo);
-            ballo.velocity = new THREE.Vector3(this.ballSpeed* 0.5, this.ballSpeed * 0.5, 0);
+            ballo.velocity = new THREE.Vector3(this.ballSpeed * 0.5, this.ballSpeed * 0.5, 0);
         });
         this.level.brickObjects.forEach(bricko => this.scene.add(bricko));
         this.level.paddleBoundaries.forEach(pb => this.scene.add(pb));
-        this.level.topWalls.forEach(wall => {
-            this.scene.add(wall);
-            this.topWallBoxes.push(new THREE.Box3().setFromObject(wall));
-        });
+        this.level.topWalls.forEach(wall => this.scene.add(wall));
         this.level.sideWalls.forEach(wall => {
             this.scene.add(wall);
             this.sideWallBoxes.push(new THREE.Box3().setFromObject(wall));
@@ -271,38 +230,59 @@ class BrickObject extends THREE.Mesh {
 class BallObject extends THREE.Mesh {
 
     velocity: THREE.Vector3;
-    colliding: boolean;
-    private collided: boolean = false;
+
+    private prevCollisions = <THREE.Object3D[]> [];
 
     constructor(geometry: THREE.SphereGeometry, material: THREE.Material, public dx?: number, public dy?: number) {
         super(geometry, material);
 
         this.velocity = new THREE.Vector3(dx, dy);
-        this.colliding = false;
     }
 
-    handleCollision(box: THREE.Box3, newVelocity?: THREE.Vector3) {
-        let position = this.position.clone();
-        this.position = this.position.add(this.velocity);
+    move(objectsVelocityMultipliers: Map<THREE.Object3D, THREE.Vector3>) {
+        let previousVelocity = this.velocity.clone();
+        this.position.copy(this.position.add(this.velocity));
+        let myBox = (new THREE.Box3()).setFromObject(this);
 
-        let ballBox = new THREE.Box3().setFromObject(this);
-        if (box.intersectsBox(ballBox)) {
-            if (!this.colliding) {
-                this.position.copy(position);
-                this.velocity.copy(newVelocity);
-                this.colliding = true;
+        let entries: [THREE.Object3D, THREE.Vector3][] = Array.from(objectsVelocityMultipliers.entries());
+        let currentCollisions = <THREE.Object3D[]> [];
+        for (let entry of entries) {
+            let obj = entry[0];
+            let box = new THREE.Box3().setFromObject(obj);
+            let velocityMultiplier = entry[1];
+
+            if (myBox.intersectsBox(box)) {
+                currentCollisions.push(obj);
+                if (this.prevCollisions.indexOf(obj) === -1) {
+                    let candidateVelocity = this.velocity.multiply(velocityMultiplier);
+                    let good = true;
+                    if (velocityMultiplier.x !== 1)
+                        if (candidateVelocity.x === previousVelocity.x) {
+                            good = false;
+                            console.log('die');
+                        }
+                    if (velocityMultiplier.y !== 1)
+                        if (candidateVelocity.y === previousVelocity.y)
+                            good = false;
+                    if (velocityMultiplier.z !== 1)
+                        if (candidateVelocity.z === previousVelocity.z)
+                            good = false;
+
+                    if (good)
+                        this.velocity.copy(candidateVelocity);
+                }
             }
-            this.collided = true;
         }
-    }
 
-    tick() {
-        if (!this.collided) {
-            this.colliding = false;
-        }
-    }
+        this.prevCollisions = currentCollisions;
 
+    }
 }
+
+/*class CollisionWrapper {
+    constructor(public boxes: THREE.Box3[], public
+}*/
+
 
 class WallObject extends THREE.Mesh {
 
