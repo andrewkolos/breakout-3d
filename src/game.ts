@@ -55,28 +55,29 @@ export class BreakoutGame {
 
             // may need to velocity change from being undone
             this.level.ballObjects.forEach(bo => {
-                let ballBox = new THREE.Box3().setFromObject(bo);
-                let map = new Map<THREE.Object3D, THREE.Vector3>();
+                if (!bo.busy) {
+                    let ballBox = new THREE.Box3().setFromObject(bo);
+                    let map = new Map<THREE.Object3D, THREE.Vector3>();
 
-                this.level.topWalls.forEach((twb) => {
-                    map.set(twb, new THREE.Vector3(1, -1, 1));
-                });
-                this.level.sideWalls.forEach((swb) => {
-                    map.set(swb, new THREE.Vector3(-1,1,1));
-                });
+                    this.level.topWalls.forEach((twb) => {
+                        map.set(twb, new THREE.Vector3(1, -1, 1));
+                    });
+                    this.level.sideWalls.forEach((swb) => {
+                        map.set(swb, new THREE.Vector3(-1, 1, 1));
+                    });
 
 
-                let paddleBox = new THREE.Box3().setFromObject(this.level.paddle);
-                if (paddleBox.intersectsBox(ballBox)) {
-                    bo.position.copy(bo.position);
-                    bo.position.y += 0.1;
-                    bo.velocity.y *= -1;
-                    bo.velocity.x = this.ballSpeed * Math.atan2(bo.position.y - this.level.paddle.position.y, bo.position.x - this.level.paddle.position.x);
-                }
+                    let paddleBox = new THREE.Box3().setFromObject(this.level.paddle);
+                    if (paddleBox.intersectsBox(ballBox)) {
+                        bo.position.copy(bo.position);
+                        bo.position.y += 0.1;
+                        bo.velocity.y *= -1;
+                        bo.velocity.x = this.ballSpeed * Math.atan2(bo.position.y - this.level.paddle.position.y, bo.position.x - this.level.paddle.position.x);
+                    }
 
-                this.level.brickObjects.forEach(brick => {
-                    let brickBox = new THREE.Box3().setFromObject(brick);
-                    if (brickBox.intersectsBox(ballBox)) {
+                    this.level.brickObjects.forEach(brick => {
+                        let brickBox = new THREE.Box3().setFromObject(brick);
+                        if (brickBox.intersectsBox(ballBox)) {
                             let xdisp = Math.abs(brick.position.x - bo.position.x);
                             let ydisp = Math.abs(brick.position.y - bo.position.y);
 
@@ -93,9 +94,10 @@ export class BreakoutGame {
                                 this.level.brickObjects = this.level.brickObjects.filter(o => o !== brick);
                             }
                         }
-                });
+                    });
 
-                bo.move(map);
+                    bo.move(map);
+                }
             }); // end ball, TODO make block shorter
         };
 
@@ -232,6 +234,7 @@ class BallObject extends THREE.Mesh {
     velocity: THREE.Vector3;
 
     private prevCollisions = <THREE.Object3D[]> [];
+    busy: boolean = false;
 
     constructor(geometry: THREE.SphereGeometry, material: THREE.Material, public dx?: number, public dy?: number) {
         super(geometry, material);
@@ -240,7 +243,9 @@ class BallObject extends THREE.Mesh {
     }
 
     move(objectsVelocityMultipliers: Map<THREE.Object3D, THREE.Vector3>) {
+        let velClone = this.velocity.clone();
         let previousVelocity = this.velocity.clone();
+        console.log('moving', this.velocity);
         this.position.copy(this.position.add(this.velocity));
         let myBox = (new THREE.Box3()).setFromObject(this);
 
@@ -254,12 +259,12 @@ class BallObject extends THREE.Mesh {
             if (myBox.intersectsBox(box)) {
                 currentCollisions.push(obj);
                 if (this.prevCollisions.indexOf(obj) === -1) {
-                    let candidateVelocity = this.velocity.multiply(velocityMultiplier);
+                    let candidateVelocity = (velClone.multiply(velocityMultiplier)).clone();
+
                     let good = true;
                     if (velocityMultiplier.x !== 1)
                         if (candidateVelocity.x === previousVelocity.x) {
                             good = false;
-                            console.log('die');
                         }
                     if (velocityMultiplier.y !== 1)
                         if (candidateVelocity.y === previousVelocity.y)
@@ -268,10 +273,29 @@ class BallObject extends THREE.Mesh {
                         if (candidateVelocity.z === previousVelocity.z)
                             good = false;
 
-                    if (good)
+                    if (good) {
                         this.velocity.copy(candidateVelocity);
+                        console.log(this.velocity);
+                        /*setTimeout(() => {
+                            this.busy = true;
+                        }, 100);*/
+                    }
                 }
             }
+        }
+
+        let isColliding = () => {
+            let myBox = new THREE.Box3().setFromObject(this);
+            for (let obj of currentCollisions) {
+                let box = new THREE.Box3().setFromObject(obj);
+                if (myBox.intersectsBox(box))
+                    return true;
+            }
+            return false;
+        };
+
+        while (isColliding()) {
+            this.position.copy(this.position.add(this.velocity));
         }
 
         this.prevCollisions = currentCollisions;
