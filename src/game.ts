@@ -43,19 +43,27 @@ export class BreakoutGame {
     constructor(updatesPerSecond: number, speedModifier: number = 1) {
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
-        this.camera.position.set(0, -20, 20);
+        this.camera.position.set(0, -10, 20);
         this._updatesPerSecond = updatesPerSecond;
         this._speedModifier = speedModifier / updatesPerSecond;
         this.scene.add(new THREE.AmbientLight('white', 1));
     }
 
     update = () => {
+        let handleBrickRemoval = () => {
+            if (this.level.brickObjects.length === 0) {
+                console.log('winner');
+            }
+        };
+
+        let handleBallOutOfBounds = () => {
+            if (this.level.ballObjects.length === 0) {
+                console.log('loser');
+            }
+        };
+
         let handleCollisions = () => {
-
-
-            // may need to velocity change from being undone
             this.level.ballObjects.forEach(bo => {
-                if (!bo.busy) {
                     let ballBox = new THREE.Box3().setFromObject(bo);
                     let map = new Map<THREE.Object3D, THREE.Vector3>();
 
@@ -69,10 +77,13 @@ export class BreakoutGame {
 
                     let paddleBox = new THREE.Box3().setFromObject(this.level.paddle);
                     if (paddleBox.intersectsBox(ballBox)) {
-                        bo.position.copy(bo.position);
-                        bo.position.y += 0.1;
-                        bo.velocity.y *= -1;
-                        bo.velocity.x = this.ballSpeed * Math.atan2(bo.position.y - this.level.paddle.position.y, bo.position.x - this.level.paddle.position.x);
+                        let d = new THREE.Vector2(bo.velocity.x, -bo.velocity.y);
+                        d.rotateAround(new THREE.Vector2, this.level.paddle.rotation.z);
+                        console.log(this.level.paddle.rotation.z);
+                        bo.velocity.x = d.x;
+                        bo.velocity.y = d.y;
+                        bo.position.add(new THREE.Vector3(0, 0.1, 0));
+                        console.log('joj');
                     }
 
                     this.level.brickObjects.forEach(brick => {
@@ -87,45 +98,94 @@ export class BreakoutGame {
                                 map.set(brick, new THREE.Vector3(1, -1, 1));
                             }
 
-                            // may need to truly insure collision
                             brick.setHealth(brick.health - 1);
                             if (brick.health < 0) {
                                 this.scene.remove(brick);
                                 this.level.brickObjects = this.level.brickObjects.filter(o => o !== brick);
+                                handleBrickRemoval();
                             }
                         }
                     });
 
                     bo.move(map);
-                }
+
+                    if (bo.position.x < -this.level.width / 2 || bo.position.x > this.level.width / 2 ||
+                        bo.position.y < -this.level.height/ 2 || bo.position.y > this.level.height / 2) {
+                        this.scene.remove(bo);
+                        this.level.ballObjects.splice(this.level.ballObjects.indexOf(bo), 1);
+                        handleBallOutOfBounds();
+                    }
+
             }); // end ball, TODO make block shorter
         };
 
         handleCollisions();
 
-        let movePaddle = (dx: number) => {
-            this.level.paddle.position.x += dx;
+        let movePaddle = (dPosition: THREE.Vector3, dRotation: THREE.Vector3 = new THREE.Vector3()) => {
+            let opos = this.level.paddle.position.clone();
+            let orot = this.level.paddle.rotation.clone();
+
+            let euler = new THREE.Euler().copy(this.level.paddle.rotation).toVector3();
+            euler.add(dRotation);
+
+            this.level.paddle.position.add(dPosition);
+            this.level.paddle.rotation.setFromVector3(euler);
+            let validMove = true;
 
             let paddlebox = new THREE.Box3().setFromObject(this.level.paddle);
             this.sideWallBoxes.forEach(swb => {
                 if (swb.intersectsBox(paddlebox))
-                    this.level.paddle.position.x -= dx;
+                    validMove = false;
             });
+            if (this.level.paddle.position.y < - this.level.height / 2 ) {
+                validMove = false;
+            }
+
+            this.level.paddleBoundaries.forEach(pb => {
+                let box = new THREE.Box3().setFromObject(pb);
+                if (box.containsPoint(this.level.paddle.position))
+                    validMove = false;
+            });
+
+            if (!validMove) {
+                this.level.paddle.position.copy(opos);
+                this.level.paddle.rotation.copy(orot);
+            }
         };
 
         if (Keyboard.isDown(Keyboard.LEFTARROW) || Keyboard.isDown(Keyboard.A)) {
-            movePaddle(-0.1);
+            movePaddle(new THREE.Vector3(-0.1, 0));
         }
 
         if (Keyboard.isDown(Keyboard.RIGHTARROW) || Keyboard.isDown(Keyboard.D)) {
-            movePaddle(0.1);
+            movePaddle(new THREE.Vector3(0.1, 0));
         }
+
+        if (Keyboard.isDown(Keyboard.UPARROW) || Keyboard.isDown(Keyboard.W)) {
+            movePaddle(new THREE.Vector3(0, 0.1));
+        }
+
+        if (Keyboard.isDown(Keyboard.DOWNARROW) || Keyboard.isDown(Keyboard.S)) {
+            movePaddle(new THREE.Vector3(0, -0.1));
+        }
+
+        if (Keyboard.isDown(Keyboard.Q)) {
+            movePaddle(new THREE.Vector3(), new THREE.Vector3(0, 0, Math.PI / 64));
+        }
+
+        if (Keyboard.isDown(Keyboard.E)) {
+            movePaddle(new THREE.Vector3(), new THREE.Vector3(0, 0, -  Math.PI / 64));
+        }
+
+
 
         if (manager.isGamepadConnected(0)) {
             let gp = manager.getGamepadState(0);
             if (gp.axis(GAMEPAD_AXES.LEFT_STICK_Y) < -0.5)
                 this.level.paddle.position.x -= 0.1;
         }
+
+
     };
 
     loadLevel = (blueprint: BreakoutLevelBlueprint) => {
@@ -164,6 +224,8 @@ class BreakoutLevel {
     paddleBoundaries = <PaddleBoundaryObject[]> [];
     topWalls = <WallObject[]> [];
     sideWalls = <WallObject[]> [];
+    height: number;
+    width: number;
     baseBallSpeed: number;
 
     constructor(blueprint: BreakoutLevelBlueprint) {
@@ -183,7 +245,7 @@ class BreakoutLevel {
         };
 
         let createPaddle = (position: Point) => {
-            let geometry = new THREE.BoxGeometry(5, 0.135, 1);
+            let geometry = new THREE.BoxGeometry(3, 0.135, 1);
             let material = new THREE.MeshPhongMaterial({color: 'blue'});
             let mesh = new PaddleObject(geometry, material);
             mesh.position.copy(convertScreenToCartesian(position.x, position.y, blueprint.width, blueprint.height));
@@ -198,10 +260,21 @@ class BreakoutLevel {
             return mesh;
         };
 
+        let createPaddleBoundary = (position: Point) => {
+            let geometry = new THREE.BoxGeometry(1,1,1);
+            let material = new THREE.MeshPhongMaterial({color: 'green', transparent: true, opacity: 0.1});
+            let mesh = new  PaddleBoundaryObject(geometry, material);
+            mesh.position.copy(convertScreenToCartesian(position.x, position.y, blueprint.width, blueprint.height));
+            return mesh;
+        };
+
         this.paddle = createPaddle(blueprint.paddlePosition);
         this.brickObjects = blueprint.bricks.map(brick => createBrickObject(brick));
         this.ballObjects = blueprint.ballPositions.map(position => createBallObject(position));
+        this.paddleBoundaries = blueprint.boundaryPositions.map(position => createPaddleBoundary(position));
         this.baseBallSpeed = blueprint.baseBallSpeed;
+        this.width = blueprint.width;
+        this.height = blueprint.height;
 
         for (let i = -1; i < blueprint.width + 1; i++) {
             let topWall = createWall(new Point(i, -1));
@@ -244,7 +317,6 @@ class BallObject extends THREE.Mesh {
     velocity: THREE.Vector3;
 
     private prevCollisions = <THREE.Object3D[]> [];
-    busy: boolean = false;
 
     constructor(geometry: THREE.SphereGeometry, material: THREE.Material, public dx?: number, public dy?: number) {
         super(geometry, material);
@@ -255,7 +327,7 @@ class BallObject extends THREE.Mesh {
     move(objectsVelocityMultipliers: Map<THREE.Object3D, THREE.Vector3>) {
         let velClone = this.velocity.clone();
         let previousVelocity = this.velocity.clone();
-        console.log('moving', this.velocity);
+
         this.position.copy(this.position.add(this.velocity));
         let myBox = (new THREE.Box3()).setFromObject(this);
 
@@ -285,10 +357,6 @@ class BallObject extends THREE.Mesh {
 
                     if (good) {
                         this.velocity.copy(candidateVelocity);
-                        console.log(this.velocity);
-                        /*setTimeout(() => {
-                            this.busy = true;
-                        }, 100);*/
                     }
                 }
             }

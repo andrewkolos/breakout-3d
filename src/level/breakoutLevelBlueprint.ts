@@ -17,6 +17,7 @@ export class BreakoutLevelBlueprint {
     readonly height: number;
     readonly ballPositions: Point[];
     readonly paddlePosition: Point;
+    readonly boundaryPositions: Point[];
     readonly baseBallSpeed: number;
     readonly bricks: Brick[];
 
@@ -61,6 +62,8 @@ export class BreakoutLevelBlueprint {
                     paddlePosition = new Point(x, y);
                 if (playerItem === 'b')
                     ballPositions.push(new Point(x, y));
+                if (playerItem === '=')
+                    paddleBoundaryPositions.push(new Point(x,y));
 ;
             }
         }
@@ -77,6 +80,7 @@ export class BreakoutLevelBlueprint {
         this.powerupMap = powerupMap;
         this.ballPositions = ballPositions;
         this.paddlePosition = paddlePosition;
+        this.boundaryPositions = paddleBoundaryPositions;
         this.baseBallSpeed = baseBallSpeed;
     }
 
