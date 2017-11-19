@@ -88,7 +88,7 @@ export class BreakoutGame {
                             }
 
                             // may need to truly insure collision
-                            brick.health--;
+                            brick.setHealth(brick.health - 1);
                             if (brick.health < 0) {
                                 this.scene.remove(brick);
                                 this.level.brickObjects = this.level.brickObjects.filter(o => o !== brick);
@@ -157,7 +157,6 @@ export class BreakoutGame {
 
 
 class BreakoutLevel {
-    static readonly HEALTH_COLOR_SCHEME = [0x00f5ec, 0x00f582, 0x00f50c, 0x8af500, 0xe9f500, 0x99ff00, 0xffff00, 0xff9d00, 0xff5400, 0xff0000];
 
     brickObjects = <BrickObject[]> [];
     paddle: PaddleObject;
@@ -170,9 +169,7 @@ class BreakoutLevel {
     constructor(blueprint: BreakoutLevelBlueprint) {
 
         let createBrickObject = (brick: Brick) => {
-            let geometry = new THREE.BoxGeometry(1, 1, 1);
-            let material = new THREE.MeshPhongMaterial({color: BreakoutLevel.HEALTH_COLOR_SCHEME[brick.health]});
-            let bo = new BrickObject(geometry, material, brick.health);
+            let bo = BrickObject.createBrick(brick.health);
             bo.position.copy(convertScreenToCartesian(brick.location.x, brick.location.y, blueprint.width, blueprint.height));
             return bo;
         };
@@ -224,8 +221,21 @@ class BreakoutLevel {
 }
 
 class BrickObject extends THREE.Mesh {
-    constructor(geometry: THREE.Geometry, material: THREE.Material, public health: number) {
+    static readonly HEALTH_COLOR_SCHEME = [0x00f5ec, 0x00f582, 0x00f50c, 0x8af500, 0xe9f500, 0x99ff00, 0xffff00, 0xff9d00, 0xff5400, 0xff0000];
+
+    private constructor(geometry: THREE.Geometry, material: THREE.Material, public health: number) {
         super(geometry, material);
+    }
+
+    setHealth(newHealth: number) {
+        this.health = newHealth;
+        (<THREE.MeshPhongMaterial> this.material).color = new THREE.Color(BrickObject.HEALTH_COLOR_SCHEME[newHealth]);
+    }
+
+    static createBrick(health: number) {
+        let geometry = new THREE.BoxGeometry(1,1,1);
+        let material = new THREE.MeshPhongMaterial({color: BrickObject.HEALTH_COLOR_SCHEME[health]});
+        return new BrickObject(geometry, material, health);
     }
 }
 

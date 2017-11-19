@@ -18,19 +18,9 @@ class Joj {
 
 document.body.onload = () => {
 
-    let joj = new Joj([1, 2, 3]);
-    let asbeb = joj;
-
-    joj.numbers = [3, 4, 5];
-
-    console.log('joj', joj === asbeb);
-
-    Physijs.scripts.worker = './libs/physijs_worker.js';
-    Physijs.scripts.ammo = './ammo.js';
-
     setUpRenderer();
 
-    game.loadLevel(BreakoutLevelBlueprint.createLevelBlueprintFromData(blueprints[0]));
+    game.loadLevel(BreakoutLevelBlueprint.createLevelBlueprintFromData(blueprints[1]));
     game.start();
 
     console.log(game.scene);
