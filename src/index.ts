@@ -22,7 +22,7 @@ document.body.onload = () => {
 
     setUpRenderer();
 
-    game.loadLevel(BreakoutLevelBlueprint.createLevelBlueprintFromData(blueprints[2]));
+    game.loadLevel(BreakoutLevelBlueprint.createLevelBlueprintFromData(blueprints[0]));
     game.start();
 
     console.log(game.scene);
