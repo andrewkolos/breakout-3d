@@ -16,11 +16,13 @@ class Joj {
     constructor(public numbers: number[]) {}
 }
 
+declare let TWEEN: any;
+
 document.body.onload = () => {
 
     setUpRenderer();
 
-    game.loadLevel(BreakoutLevelBlueprint.createLevelBlueprintFromData(blueprints[1]));
+    game.loadLevel(BreakoutLevelBlueprint.createLevelBlueprintFromData(blueprints[2]));
     game.start();
 
     console.log(game.scene);
@@ -50,6 +52,7 @@ function setUpRenderer() {
 let render = () => {
     renderer.render(game.scene, game.camera);
     game.update();
+    TWEEN.update();
     requestAnimationFrame(render);
 };
 
