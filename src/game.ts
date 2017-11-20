@@ -6,8 +6,10 @@ import {GAMEPAD_AXES} from "./gamepad/mappedGamepad";
 import Keyboard from './util/keyboard';
 
 declare let TWEEN: any;
+declare let PxGamepad: any;
 
-let manager = new GamepadManager();
+let gamepad = new PxGamepad();
+gamepad.start();
 
 export class BreakoutGame {
 
@@ -163,15 +165,17 @@ export class BreakoutGame {
 
         handleCollisions();
 
-        let movePaddle = (dPosition: THREE.Vector3, dRotation: THREE.Vector3 = new THREE.Vector3()) => {
+        let movePaddle = (dPosition: THREE.Vector3, newRotation?: THREE.Vector3) => {
             let opos = this.level.paddle.position.clone();
             let orot = this.level.paddle.rotation.clone();
 
-            let euler = new THREE.Euler().copy(this.level.paddle.rotation).toVector3();
-            euler.add(dRotation);
+            /*let euler = new THREE.Euler().copy(this.level.paddle.rotation).toVector3();
+            euler.add(newRotation);*/
+            if (newRotation)
+            this.level.paddle.rotation.copy(new THREE.Euler().setFromVector3(newRotation));
 
             this.level.paddle.position.add(dPosition);
-            this.level.paddle.rotation.setFromVector3(euler);
+            //this.level.paddle.rotation.setFromVector3(euler);
             let validMove = true;
 
             let paddlebox = new THREE.Box3().setFromObject(this.level.paddle);
@@ -212,19 +216,36 @@ export class BreakoutGame {
         }
 
         if (Keyboard.isDown(Keyboard.Q)) {
-            movePaddle(new THREE.Vector3(), new THREE.Vector3(0, 0, Math.PI / 64));
+            movePaddle(new THREE.Vector3(), new THREE.Vector3(0, 0, this.level.paddle.rotation.z + Math.PI / 64));
         }
 
         if (Keyboard.isDown(Keyboard.E)) {
-            movePaddle(new THREE.Vector3(), new THREE.Vector3(0, 0, -Math.PI / 64));
+            movePaddle(new THREE.Vector3(), new THREE.Vector3(0, 0, this.level.paddle.rotation.z - Math.PI / 64));
+        }
+
+        let playerPaddleSpeed = new THREE.Vector2(0, 0);
+        let gp = gamepad.getGamepad();
+        if (gp) {
+            {
+                let x = gp.axes[0];
+                let y = gp.axes[1];
+                movePaddle(new THREE.Vector3(0.15 * x, -0.15 * y, 0));
+            }
+            {
+                let x = gp.axes[2];
+                let y = gp.axes[3];
+                let angle = Math.atan2(-y, x);
+                if (Math.abs(x) > 0.1 || Math.abs(y) > 0.1)
+                movePaddle(new THREE.Vector3(), new THREE.Vector3(0,0,angle - Math.PI/2));
+            }
         }
 
 
-        if (manager.isGamepadConnected(0)) {
+        /*if (manager.isGamepadConnected(0)) {
             let gp = manager.getGamepadState(0);
             if (gp.axis(GAMEPAD_AXES.LEFT_STICK_Y) < -0.5)
                 this.level.paddle.position.x -= 0.1;
-        }
+        }*/
 
     };
 
