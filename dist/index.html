@@ -11,18 +11,129 @@
             crossorigin="anonymous"></script>
 
     <style type="text/css">
+        body {
+            font-family: Verdana, Arial, sans-serif;
+            background-color: black;
+            color: white;
+        }
+
         #cornerui {
             position: absolute;
-            top: 0; right: 0;
-            background-color: rgba(0,0,0, 0.5);
+            top: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.5);
             text-align: center;
-
+            font-size: 1.5em;
+            color: white;
         }
+
+        #cornerui .item {
+            padding: 10px;
+        }
+
+        #cornerui div {
+            display: inline-block;
+        }
+
+        #cornerui .button {
+            text-align: center;
+            cursor: pointer;
+            border-left: 1px solid #aaaaaa;
+        }
+
+        .noSelect {
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
+        }
+
+        #modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+            min-width: 600px;
+            max-width: 1000px;
+            width: 80%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            max-height: 90%;
+        }
+
+        #modal .heading {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #clickToPlay {
+            padding: 10px;
+            display: inline-block;
+            text-align: center;
+            font-size: 1.4em;
+            border-radius: 10px;
+            min-width: 200px;
+        }
+
+        .white-border {
+            border: 1px solid white;
+        }
+
+        #levelMenu {
+            position: absolute;
+            top:0;
+            left:0;
+        }
+        jpleasegivmerewatnpglerewatngivmerewa
+
     </style>
 </head>
 <body style="margin: 0" class="noSelect">
 
 <script type="text/javascript" src="bundle.js"></script>
 
+<div id="modal">
+    <div class="heading">
+        <h1 style="margin: 0; font-family: 'Arial Black', Gadget, sans-serif">Breakout</h1>
+        <h4 style="margin: 0">Made by Andrew Kolos</h4>
+    </div>
+    <div class="body">
+        <p>WASD to move the paddle</p>
+        <p>Q, E to rotate the paddle</p>
+        <p>You can also use an XBox gamepad. Left stick to move, right stick to rotate</p>
+
+        <div style="text-align:center">
+            <div id="clickToPlay" class="white-border">
+                Play
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="cornerui">
+    <div id="resetButton" class="item button">
+        Reset
+    </div>
+    <div class="item button" data-levelidx="0">
+        Level 0
+    </div>
+    <div class="item button" data-levelidx="1">
+        Level 1
+    </div>
+    <div class="item button" data-levelidx="2">
+        Level 2
+    </div>
+    <div class="item button" data-levelidx="3">
+        Level 3
+    </div>
+</div>
+
+<div id="message" class="noSelect">
+
+</div>
 </body>
 </html>
