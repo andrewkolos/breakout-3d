@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {GamepadManager} from "./gamepad/gamepadManager";
 import {GAMEPAD_AXES} from "./gamepad/mappedGamepad";
 import Keyboard from './util/keyboard';
+import {Sound, SoundCollection} from "./sounds";
 
 declare let TWEEN: any;
 declare let PxGamepad: any;
@@ -23,6 +24,11 @@ export class BreakoutGame {
     private _speedModifier: number;
 
     private ballSpeed: number;
+    private ballHitSounds = new SoundCollection([new Sound('sounds/1.mp3', 1, 5),
+                                                new Sound('sounds/1_pitchdown_5.mp3', 1, 5),
+                                                new Sound('sounds/1_pitchdown_10.mp3', 1, 5),
+                                                new Sound('sounds/1_pitchup_5.mp3', 1, 5),
+                                                new Sound('sounds/1_pitchup_10.mp3',1,5)]);
 
     private _running: boolean = false;
     private _updatesPerSecond: number;
@@ -123,7 +129,10 @@ export class BreakoutGame {
 
 
                         bo.stillCollidingWithPlayer = true;
+                        this.ballHitSounds.playOne();
                     }
+
+
                 } else {
                     bo.stillCollidingWithPlayer = false;
                 }
@@ -152,7 +161,9 @@ export class BreakoutGame {
                     }
                 });
 
-                bo.move(map);
+                if (bo.move(map)) {
+                    this.ballHitSounds.playOne();
+                }
 
                 if (bo.position.x < -this.level.width / 2 - 2 || bo.position.x > this.level.width / 2 + 2 ||
                     bo.position.y < -this.level.height / 2 - 2 || bo.position.y > this.level.height / 2 + 2) {
@@ -387,6 +398,8 @@ class BallObject extends THREE.Mesh {
     }
 
     move(objectsVelocityMultipliers: Map<THREE.Object3D, THREE.Vector3>) {
+        let collided = false;
+
         let velClone = this.velocity.clone();
         let previousVelocity = this.velocity.clone();
 
@@ -418,6 +431,7 @@ class BallObject extends THREE.Mesh {
                             good = false;
 
                     if (good) {
+                        collided = true;
                         this.velocity.copy(candidateVelocity);
                     }
                 }
@@ -439,6 +453,7 @@ class BallObject extends THREE.Mesh {
         }*/
 
         this.prevCollisions = currentCollisions;
+        return collided;
 
     }
 }

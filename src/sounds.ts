@@ -13,7 +13,6 @@ export class Sound {
         for (let i = 0;i < numberOfChannels; i++) {
             this.channels.push(<HTMLAudioElement>(audio.cloneNode()));
         }
-
         this.volume = volume;
     }
 
@@ -46,5 +45,18 @@ export class Sound {
 
     addEventListener(event: string, f: () => any) {
         this.channels[0].addEventListener(event, f);
+    }
+}
+
+export class SoundCollection {
+    private last = -1;
+
+    constructor(public sounds: Sound[]) {
+
+    }
+
+    playOne() {
+        let rand = Math.floor(Math.random() * this.sounds.length);
+        this.sounds[rand].play();
     }
 }
