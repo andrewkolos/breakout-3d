@@ -71,6 +71,9 @@ export class BreakoutGame {
     }
 
     update = () => {
+        if (!this._running)
+            return;
+
         let handleBrickRemoval = () => {
             if (this.level.brickObjects.length === 0) {
                 console.log('winner');
@@ -261,6 +264,7 @@ export class BreakoutGame {
     };
 
     loadLevel = (blueprint: BreakoutLevelBlueprint) => {
+        this.unloadLevel();
         this.level = new BreakoutLevel(blueprint);
         this.ballSpeed = this._speedModifier * this.level.baseBallSpeed;
         this.level.ballObjects.forEach(ballo => {
@@ -275,6 +279,23 @@ export class BreakoutGame {
             this.sideWallBoxes.push(new THREE.Box3().setFromObject(wall));
         });
         this.scene.add(this.level.paddle);
+    };
+
+    unloadLevel = () => {
+        if(this.level) {
+            let objects = [...this.level.sideWalls, ...this.level.topWalls, ...this.level.ballObjects, ...this.level.brickObjects, ...this.level.paddleBoundaries, this.level.paddle];
+
+            objects.forEach((o) => {
+                o.geometry.dispose();
+                // note: currently not recursive
+                (o.material as THREE.MeshPhongMaterial).dispose();
+                if (this.scene.children.indexOf(o) !== -1)
+                    this.scene.remove(o);
+            });
+
+            this.level = null;
+            this.sideWallBoxes = [];
+        }
     };
 
     stop = () => {

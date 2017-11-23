@@ -52,7 +52,7 @@ let level: BreakoutLevelData = {
         "----------------------------",
         "-------------p--------------",
     ],
-    "baseBallSpeed": 12
+    "baseBallSpeed": 20
 };
 
 export default level;
