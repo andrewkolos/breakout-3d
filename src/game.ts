@@ -18,6 +18,7 @@ export class BreakoutGame {
     readonly camera: THREE.PerspectiveCamera;
 
     private level: BreakoutLevel;
+    private levelBlueprint: BreakoutLevelBlueprint;
 
     private sideWallBoxes = <THREE.Box3[]> [];
 
@@ -94,6 +95,9 @@ export class BreakoutGame {
                         (<THREE.MeshPhongMaterial> bo.material).opacity = opacity.value;
                     }).onComplete(() => {
                         this.scene.remove(paddle);
+                        setTimeout(()=> {
+                            this.loadLevel(this.levelBlueprint);
+                        }, 500);
                 }).start();
             }
         };
@@ -279,6 +283,7 @@ export class BreakoutGame {
             this.sideWallBoxes.push(new THREE.Box3().setFromObject(wall));
         });
         this.scene.add(this.level.paddle);
+        this.levelBlueprint = blueprint;
     };
 
     unloadLevel = () => {
